@@ -42,7 +42,6 @@ def get_lines(img):
             cv2.line(output, pt1, pt2, (0, 0, 255), 3, cv2.LINE_AA)
 
     show_picture(output, "end")
-    print(line_list)
     return line_list
 
 
@@ -51,19 +50,39 @@ def get_gradient(lines):
     lines_grad = []
     for line in lines:
         if line[1][0] - line[0][0] == 0:
-            m = math.inf
+            m = 999999999
         elif line[1][1] - line[0][1] == 0:
             m = 0
         else:
             m = (line[1][1] - line[0][1]) / (line[1][0] - line[0][0])
         c = line[0][1] - line[0][0] * m
-        print(line[0], line[1], m, c)
-        lines_grad.append([m, line[0]])
+        lines_grad.append([m, c, line[0]])
     return lines_grad
 
 
-def get_intersections(lines):
-    pass
+def get_intersections(lines, img):
+    intersections = []
+    straightness = 1
+    while len(lines) > 1:
+        current_line = lines.pop()
+        for line in lines:
+            # two vertical lines should not intersect
+            if abs(current_line[0]) > straightness * 2 and abs(line[0]) > straightness * 2:
+                continue
+            # two horizontal lines should not intersect
+            if abs(current_line[0]) < straightness / 2 and abs(line[0]) < straightness / 2:
+                continue
+            m = current_line[0] - line[0]
+            c = current_line[1] - line[1]
+            x = -c / m
+            y = current_line[0] * x + current_line[1]
+            x = round(x)
+            y = round(y)
+            if abs(y) <= 1000:
+                intersections.append((x, y))
+                cv2.circle(img, (x, y), 0, (0, 0, 255), 5)
+    show_picture(img, "points")
+    return intersections
 
 
 if __name__ == '__main__':
@@ -71,4 +90,4 @@ if __name__ == '__main__':
     show_picture(img1)
     lines = get_lines(img1)
     lines = get_gradient(lines)
-    get_intersections(lines)
+    get_intersections(lines, img1)
