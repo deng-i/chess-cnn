@@ -38,14 +38,13 @@ def get_lines(img):
             pt1 = (int(x0 + 1000 * (-b)), int(y0 + 1000 * a))
             pt2 = (int(x0 - 1000 * (-b)), int(y0 - 1000 * a))
             line_list.append([pt1, pt2])
-
             cv2.line(output, pt1, pt2, (0, 0, 255), 3, cv2.LINE_AA)
 
     show_picture(output, "end")
     return line_list
 
 
-# get m from y = mx + c
+# get m, c from y = mx + c
 def get_gradient(lines):
     lines_grad = []
     for line in lines:
@@ -63,6 +62,7 @@ def get_gradient(lines):
 def get_intersections(lines, img):
     intersections = []
     straightness = 1
+    img2 = img.copy()
     while len(lines) > 1:
         current_line = lines.pop()
         for line in lines:
@@ -78,16 +78,47 @@ def get_intersections(lines, img):
             y = current_line[0] * x + current_line[1]
             x = round(x)
             y = round(y)
-            if abs(y) <= 1000:
+            if abs(y) <= height and abs(x) <= width: # intersection is in the picture
                 intersections.append((x, y))
-                cv2.circle(img, (x, y), 0, (0, 0, 255), 5)
-    show_picture(img, "points")
+                cv2.circle(img2, (x, y), 0, (0, 0, 255), 5)
+    show_picture(img2, "points")
     return intersections
+
+
+def clear_intersections(intersections, img):
+    new_intersections = []
+    img2 = img.copy()
+
+    def dist(i1, i2):
+        distance = ((i1[0] - i2[0]) ** 2 + (i1[1] - i2[1]) ** 2) ** 0.5
+        return distance
+
+    # remove close intersections
+    while len(intersections) > 1:
+        flag = True
+        intersection = intersections.pop()
+        for inters in intersections:
+            # there is another close intersection, so this one is not needed
+            if dist(intersection, inters) < (height / 16):
+                flag = False
+                break
+        if flag:
+            new_intersections.append(intersection)
+            cv2.circle(img2, intersection, 0, (0, 0, 255), 5)
+    # last intersection has to be added manually
+    new_intersections.append(intersections[0])
+    cv2.circle(img2, intersections[0], 0, (0, 0, 255), 5)
+
+    show_picture(img2, "cleared")
+    return new_intersections
 
 
 if __name__ == '__main__':
     img1 = open_image()
+    height = img1.shape[0]
+    width = img1.shape[1]
     show_picture(img1)
     lines = get_lines(img1)
     lines = get_gradient(lines)
-    get_intersections(lines, img1)
+    intersections = get_intersections(lines, img1)
+    intersections = clear_intersections(intersections, img1)
