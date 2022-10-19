@@ -116,7 +116,7 @@ def clear_intersections(intersections, img):
 
 
 def chop_image(intersections, img):
-    img2 = img.copy()
+    # img2 = img.copy()
     x_avg = [[] for _ in range(9)]
     y_avg = [[] for _ in range(9)]
     # there will be 9x9 points
@@ -129,8 +129,8 @@ def chop_image(intersections, img):
         x_avg[i] = round(np.mean(x_avg[i]))
         y_avg[i] = round(np.mean(y_avg[i]))
 
-    img2 = img2[x_avg[0]:x_avg[8], y_avg[0]:y_avg[8]]
-    show_picture(img2, "cropped")
+    # img2 = img2[x_avg[0]:x_avg[8], y_avg[0]:y_avg[8]]
+    # show_picture(img2, "cropped")
     # will start at top left, go left to right, top to bottom
     tiles = [[[] for _ in range(8)] for _ in range(8)]
     for i in range(8):
