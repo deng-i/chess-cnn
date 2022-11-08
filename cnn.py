@@ -13,9 +13,10 @@ from tensorflow.keras.models import Sequential
 # image_count = len(list(data_dir.glob("*/*.jpg")))
 
 batch_size = 32
-img_height = 180
-img_width = 180
+img_height = 80
+img_width = 80
 epochs = 15
+class_names = []
 
 
 def load_data(path):
@@ -110,7 +111,7 @@ def show_stats(history):
     plt.show()
 
 
-def save_model(model):
+def save_model(model, class_names):
     # Convert the model.
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     tflite_model = converter.convert()
@@ -118,7 +119,9 @@ def save_model(model):
     # Save the model.
     with open('model.tflite', 'wb') as f:
         f.write(tflite_model)
-
+    with open("classes.txt", "w") as f:
+        for c in class_names:
+            f.write(str(c) + "\n")
 
 def load_model():
     TF_MODEL_FILE_PATH = 'model.tflite'
@@ -126,11 +129,14 @@ def load_model():
         interpreter = tf.lite.Interpreter(model_path=TF_MODEL_FILE_PATH)
     except ValueError:
         return None
+    with open("classes.txt", "r") as f:
+        for line in f:
+            class_names.append(line.strip())
     classify_lite = interpreter.get_signature_runner('serving_default')
     return classify_lite
 
 
-def test_on_img(path, classify_lite, class_names):
+def test_on_img(path, classify_lite):
     img_path = pathlib.Path(path)
     img = tf.keras.utils.load_img(img_path, target_size=(img_height, img_width))
     img_array = tf.keras.utils.img_to_array(img)
@@ -139,10 +145,11 @@ def test_on_img(path, classify_lite, class_names):
     predictions_lite = classify_lite(sequential_input=img_array)['outputs']
     score_lite = tf.nn.softmax(predictions_lite)
 
-    print(
-        "This image most likely belongs to {} with a {:.2f} percent confidence."
-        .format(class_names[np.argmax(score_lite)], 100 * np.max(score_lite))
-    )
+    return class_names[np.argmax(score_lite)]
+    # print(
+    #     "This image most likely belongs to {} with a {:.2f} percent confidence."
+    #     .format(class_names[np.argmax(score_lite)], 100 * np.max(score_lite))
+    # )
 
 
 def predict_img(dir_path="C:/Users/hogyv/Downloads/Chess_ID_Public_Data/output_train", img_path="C:/Users/hogyv/Downloads/Chess_ID_Public_Data/output_test/bb/0761_2.jpg"):
@@ -151,13 +158,11 @@ def predict_img(dir_path="C:/Users/hogyv/Downloads/Chess_ID_Public_Data/output_t
         train_ds, val_ds = prepare_data(train_ds, val_ds)
         history, model = make_model(class_names, train_ds, val_ds)
         show_stats(history)
-        save_model(model)
+        save_model(model, class_names)
         loaded_model = load_model()
-        test_on_img(img_path, loaded_model, class_names)
+        return test_on_img(img_path, loaded_model, class_names)
     else:
-        _, _, class_names = load_data(dir_path)
         loaded_model = load_model()
-        test_on_img(img_path, loaded_model, class_names)
+        return test_on_img(img_path, loaded_model)
 
-# predict_img()
 
